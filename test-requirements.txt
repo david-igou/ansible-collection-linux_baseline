@@ -1,4 +1,5 @@
-# TO-DO: add python packages that are required for testing this collection
+# Testing dependencies for david_igou.linux_baseline collection
 pytest-ansible
 pytest-xdist
-molecule
+pytest-mock
+pyyaml

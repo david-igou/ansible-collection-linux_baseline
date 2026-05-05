@@ -48,3 +48,10 @@ repos:
     rev: 7.0.0
     hooks:
       - id: flake8
+
+  - repo: https://github.com/ansible/ansible-lint
+    rev: v26.4.0
+    hooks:
+      - id: ansible-lint
+        additional_dependencies:
+          - ansible-core>=2.15,<2.21
