@@ -1,0 +1,73 @@
+---
+# tasks file for david_igou.linux_baseline.chrony
+
+- name: Install chrony package
+  ansible.builtin.package:
+    name: chrony
+    state: present
+
+- name: Determine chrony config path based on distribution
+  ansible.builtin.set_fact:
+    chrony_config_path: "{{ '/etc/chrony/chrony.conf' if ansible_facts.distribution == 'Fedora' else '/etc/chrony.conf' }}"
+
+- name: Configure chrony NTP servers
+  ansible.builtin.lineinfile:
+    path: "{{ chrony_config_path }}"
+    regexp: '^pool'
+    line: "pool {{ item }} iburst maxsources 4"
+    create: true
+    mode: "0644"
+  loop: "{{ chrony_pool_servers }}"
+  notify: "Restart chronyd"
+
+- name: Configure chrony drift file
+  ansible.builtin.lineinfile:
+    path: "{{ chrony_config_path }}"
+    regexp: '^driftfile'
+    line: "driftfile {{ chrony_drift_file }}"
+    create: true
+    mode: "0644"
+  notify: "Restart chronyd"
+
+- name: Configure chrony makestep
+  ansible.builtin.lineinfile:
+    path: "{{ chrony_config_path }}"
+    regexp: '^makestep'
+    line: "makestep {{ chrony_makestep }}"
+    create: true
+    mode: "0644"
+  notify: "Restart chronyd"
+
+- name: Configure chrony leapsecmode
+  ansible.builtin.lineinfile:
+    path: "{{ chrony_config_path }}"
+    regexp: '^leapsecmode'
+    line: "leapsecmode {{ chrony_leapsecmode }}"
+    create: true
+    mode: "0644"
+  notify: "Restart chronyd"
+
+- name: Configure chrony log interval
+  ansible.builtin.lineinfile:
+    path: "{{ chrony_config_path }}"
+    regexp: '^log'
+    line: "log {{ 'tracking' if chrony_log_interval == -1 else 'measurement direction transmiss onoffline' }}"
+    create: true
+    mode: "0644"
+  notify: "Restart chronyd"
+
+- name: Configure chrony access network (read-only)
+  ansible.builtin.lineinfile:
+    path: "{{ chrony_config_path }}"
+    regexp: '^restrict'
+    line: "restrict {{ chrony_access_network }}{{ chrony_access_mask }} {{ 'ro' if chrony_access_ro else 'ignore' }}"
+    create: true
+    mode: "0644"
+  notify: "Restart chronyd"
+
+- name: Enable and start chronyd service
+  ansible.builtin.service:
+    name: chronyd
+    enabled: true
+    state: started
+  when: chrony_enabled | bool
