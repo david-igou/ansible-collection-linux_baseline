@@ -1,2 +1,23 @@
 ---
 # meta file for david_igou.linux_baseline.chrony
+
+galaxy_info:
+  role_name: chrony
+  author: david_igou
+  description: Configure chrony NTP service for time synchronization hardening
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Fedora
+      versions:
+        - "41"
+    - name: EL
+      versions:
+        - "9"
+  galaxy_tags:
+    - system
+    - ntp
+    - chrony
+    - hardening
+
+dependencies: []

@@ -1,2 +1,23 @@
 ---
 # meta file for david_igou.linux_baseline.auto_updates
+
+galaxy_info:
+  role_name: auto_updates
+  author: david_igou
+  description: Configure automatic security updates using dnf-automatic
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Fedora
+      versions:
+        - "41"
+    - name: EL
+      versions:
+        - "9"
+  galaxy_tags:
+    - system
+    - security
+    - updates
+    - hardening
+
+dependencies: []

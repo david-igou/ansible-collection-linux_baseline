@@ -143,7 +143,7 @@ def parse_journald_config(lines):
 
         # Parse key=value within a section
         if current_section and "=" in stripped and not stripped.startswith("#"):
-            key, _, value = stripped.partition("=")
+            key, sep_char, value = stripped.partition("=")
             key = key.strip()
             value = value.strip()
             config[current_section][key] = value
@@ -158,7 +158,7 @@ def get_section_and_key(setting_key):
     Falls back to default section for simple names: 'Storage' -> ('Journal', 'Storage')
     """
     if "." in setting_key:
-        section, _, key = setting_key.partition(".")
+        section, sep_char, key = setting_key.partition(".")
         return section, key
     return DEFAULT_SECTION, setting_key
 

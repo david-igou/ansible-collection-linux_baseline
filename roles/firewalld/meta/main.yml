@@ -1,2 +1,23 @@
 ---
 # meta file for david_igou.linux_baseline.firewalld
+
+galaxy_info:
+  role_name: firewalld
+  author: david_igou
+  description: Configure firewall rules and zones using firewalld for network security
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Fedora
+      versions:
+        - "41"
+    - name: EL
+      versions:
+        - "9"
+  galaxy_tags:
+    - system
+    - security
+    - firewall
+    - hardening
+
+dependencies: []

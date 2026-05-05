@@ -1,6 +1,5 @@
 """Unit tests for sysctl_profile module."""
 import os
-import shutil
 import sys
 import tempfile
 from unittest.mock import MagicMock, patch
