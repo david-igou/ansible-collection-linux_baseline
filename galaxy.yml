@@ -8,21 +8,14 @@ name: "linux_baseline"
 version: 1.0.0
 readme: README.md
 authors:
-  - your name <example@domain.com>
+  - david_igou <https://github.com/david-igou>
 
-description: your collection description
+description: "Ansible collection for Linux system baseline hardening and configuration management across RHEL 9, Fedora 41, and CentOS Stream 10."
 license_file: LICENSE
 
-# TO-DO: update the tags based on your content type
-tags: ["linux", "tools"]
-# TO-DO: maintain this list to reflect the collection's dependencies
+tags: ["linux", "security", "hardening", "sysadmin", "rhel", "fedora", "centos", "infrastructure"]
 dependencies:
-  "ansible.utils": "*" # note: "*" selects the latest version available
-
-repository: http://example.com/repository
-documentation: http://docs.example.com
-homepage: http://example.com
-issues: http://example.com/issue/tracker
+  "ansible.utils": "*"
 
 # A list of file glob-like patterns used to filter any files or directories that should not be included in the build
 # artifact. A pattern is matched from the relative path of the file or directory of the collection directory. This
