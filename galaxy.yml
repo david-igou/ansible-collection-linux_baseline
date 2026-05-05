@@ -13,6 +13,8 @@ authors:
 description: "Ansible collection for Linux system baseline hardening and configuration management across RHEL 9, Fedora 41, and CentOS Stream 10."
 license_file: LICENSE
 
+repository: https://github.com/david-igou/ansible-collection-linux_baseline
+
 tags: ["linux", "security", "hardening", "sysadmin", "rhel", "fedora", "centos", "infrastructure"]
 dependencies:
   "ansible.utils": "*"

@@ -11,8 +11,7 @@ __metaclass__ = type
 DOCUMENTATION = r"""
 ---
 module: sshd_option
-short_version_alternatives: []
-long_version: ""
+short_description: Set or remove sshd_config directives
 version_added: "1.0.0"
 description:
     - Set or remove individual sshd_config directives.
@@ -84,12 +83,24 @@ file:
     type: str
     returned: changed
 """
+ANSIBLE_METADATA = {
+    "metadata_version": "1.1",
+    "status": ["stableinterface"],
+    "supported_by": "community",
+}
 
 import os
 import re
 import shutil
 
 from ansible.module_utils.basic import AnsibleModule
+
+argument_spec = dict(
+    settings=dict(type="dict", required=True),
+    path=dict(type="str", default="/etc/ssh/sshd_config"),
+    backup=dict(type="bool", default=False),
+    state=dict(type="str", default="present", choices=["present", "absent"]),
+)
 
 
 def read_sshd_config(file_path):
@@ -173,15 +184,8 @@ def apply_settings(file_path, settings, state, backup, check_mode, diff_lines_be
 
 
 def main():
-    module_args = dict(
-        settings=dict(type="dict", required=True),
-        path=dict(type="str", default="/etc/ssh/sshd_config"),
-        backup=dict(type="bool", default=False),
-        state=dict(type="str", default="present", choices=["present", "absent"]),
-    )
-
     module = AnsibleModule(
-        argument_spec=module_args,
+        argument_spec=argument_spec,
         supports_check_mode=True,
     )
 

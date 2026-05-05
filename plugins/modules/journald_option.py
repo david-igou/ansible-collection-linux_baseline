@@ -11,8 +11,7 @@ __metaclass__ = type
 DOCUMENTATION = r"""
 ---
 module: journald_option
-short_version_alternatives: []
-long_version: ""
+short_description: Set or remove journald.conf directives
 version_added: "1.0.0"
 description:
     - Set or remove individual journald.conf directives under C([Journal]), C([Runtime]), and C([Persistent]) sections.
@@ -91,6 +90,11 @@ file:
     type: str
     returned: changed
 """
+ANSIBLE_METADATA = {
+    "metadata_version": "1.1",
+    "status": ["stableinterface"],
+    "supported_by": "community",
+}
 
 import os
 import re

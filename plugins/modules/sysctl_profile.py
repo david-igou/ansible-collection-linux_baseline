@@ -11,8 +11,7 @@ __metaclass__ = type
 DOCUMENTATION = r"""
 ---
 module: sysctl_profile
-short_version_alternatives: []
-long_version: ""
+short_description: Manage sysctl drop-in files in /etc/sysctl.d/
 version_added: "1.0.0"
 description:
     - Creates or manages drop-in files in /etc/sysctl.d/ for kernel parameter tuning.
@@ -100,6 +99,11 @@ backup_file:
     type: str
     returned: changed,backup
 """
+ANSIBLE_METADATA = {
+    "metadata_version": "1.1",
+    "status": ["stableinterface"],
+    "supported_by": "community",
+}
 
 import os
 import re
