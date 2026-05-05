@@ -1,0 +1,17 @@
+---
+# tasks file for david_igou.linux_baseline.sshd
+
+- name: Apply sshd hardening settings
+  david_igou.linux_baseline.sshd_option:
+    settings: "{{ sshd_settings }}"
+    path: "{{ sshd_config_path }}"
+    backup: "{{ sshd_backup }}"
+  notify: "Reload sshd"
+  when: sshd_enabled | bool
+
+- name: Enable and start sshd service
+  ansible.builtin.service:
+    name: sshd
+    enabled: true
+    state: started
+  when: sshd_enabled | bool

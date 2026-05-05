@@ -1,0 +1,7 @@
+---
+# handlers file for david_igou.linux_baseline.sshd
+- name: Reload sshd
+  ansible.builtin.service:
+    name: sshd
+    state: reloaded
+  listen: "Reload sshd"
