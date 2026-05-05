@@ -2,11 +2,14 @@
 # tasks file for david_igou.linux_baseline.common
 
 - name: Set locale
-  ansible.builtin.command:
-    cmd: localectl set-locale LANG={{ common_locale }}
-  when: common_locale != ansible_facts.get("locale", "")
-  changed_when: false
-  notify: "restart services"
+  ansible.builtin.lineinfile:
+    path: /etc/locale.conf
+    regexp: '^LANG='
+    line: "LANG={{ common_locale }}"
+    create: true
+    mode: "0644"
+    owner: root
+    group: root
 
 - name: Set idle timeout (TMOUT)
   ansible.builtin.lineinfile:
@@ -17,7 +20,6 @@
     group: root
     mode: "0644"
     create: true
-  notify: "restart services"
 
 - name: Set umask
   ansible.builtin.lineinfile:
@@ -28,15 +30,16 @@
     group: root
     create: true
     mode: "0644"
-  notify: "restart services"
 
 - name: Disable core dumps
   ansible.builtin.lineinfile:
     path: /etc/systemd/coredump.conf
     regexp: '^CoreDumpStorage='
     line: "CoreDumpStorage=none"
+    owner: root
+    group: root
+    mode: "0644"
   when: not common_core_dump_enabled
-  notify: "restart services"
 
 - name: Configure PAM faillock (RHEL-family)
   when: ansible_facts.get("os_family", "") == "RedHat"
@@ -46,21 +49,19 @@
         path: /etc/security/faillock.conf
         regexp: '^deny ='
         line: "deny = {{ common_pam_faillock_deny }}"
-      notify: "restart services"
 
     - name: Set PAM faillock unlock time
       ansible.builtin.lineinfile:
         path: /etc/security/faillock.conf
         regexp: '^unlock_time ='
         line: "unlock_time = {{ common_pam_faillock_unlock_time }}"
-      notify: "restart services"
 
 - name: Install and configure auditd (RHEL-family)
   when: common_auditd_enabled | bool
   block:
     - name: Install audit package
       ansible.builtin.package:
-        name: "{{ 'audit' if ansible_facts.distribution in ['RedHat', 'CentOS'] else 'audit' }}"
+        name: audit
         state: present
 
     - name: Configure auditd rules
