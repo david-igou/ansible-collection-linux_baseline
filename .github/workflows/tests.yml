@@ -8,10 +8,11 @@ concurrency:
 on: # yamllint disable-line rule:truthy
   pull_request:
     branches: [main]
+  push:
+    branches: [main]
   workflow_dispatch:
-  # TO-DO: Below is an example cron scheduler. Uncomment and tweak it as per your requirement
-  # schedule:
-    # - cron: '0 0 * * *'
+  schedule:
+    - cron: '0 6 * * 1'
 
 jobs:
   changelog:
@@ -45,8 +46,9 @@ jobs:
           python -c "assert 'failure' not in
           set([
           '${{ needs.changelog.result }}',
+          '${{ needs.build-import.result }}',
           '${{ needs.sanity.result }}',
-          '${{ needs.unit-galaxy.result }}'
-          '${{ needs.ansible-lint.result }}'
+          '${{ needs.unit-galaxy.result }}',
+          '${{ needs.ansible-lint.result }}',
           '${{ needs.unit-source.result }}'
           ])"
