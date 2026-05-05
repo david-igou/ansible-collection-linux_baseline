@@ -1,0 +1,9 @@
+---
+# defaults file for david_igou.linux_baseline.sudoers
+sudoers_enabled: true
+sudoers_defaults:
+  env_keep: "BLOCKS_COLORS DISPLAY HOSTNAME KDEDIR LS_COLORS PATH PATH_LOCALE PS1 PS2 QTDIR QT_PLUGIN_PATH SELINUX_INIT SESSION_MANAGER TERMINAL USER LANG"
+  passwd_tries: 3
+  timeout: 5
+  logfile: "/var/log/sudo.log"
+sudoers_dropins: []

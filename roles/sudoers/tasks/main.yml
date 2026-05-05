@@ -1,0 +1,40 @@
+---
+# tasks file for david_igou.linux_baseline.sudoers
+
+- name: Install sudo package
+  ansible.builtin.package:
+    name: sudo
+    state: present
+
+- name: Configure sudo defaults
+  ansible.builtin.lineinfile:
+    path: /etc/sudoers
+    regexp: "^Defaults\\s+{{ item.key }}"
+    line: "Defaults {{ item.key }}={{ item.value }}"
+    owner: root
+    group: root
+    mode: "0440"
+    validate: "visudo -cf %s"
+  loop: "{{ sudoers_defaults | dict2items }}"
+  notify: "Validate sudoers configuration"
+  when: sudoers_enabled | bool
+
+- name: Set sudoers file permissions
+  ansible.builtin.file:
+    path: /etc/sudoers
+    owner: root
+    group: root
+    mode: "0440"
+  when: sudoers_enabled | bool
+
+- name: Create sudoers drop-in files
+  ansible.builtin.copy:
+    content: "{{ item.content }}"
+    dest: "/etc/sudoers.d/{{ item.name }}"
+    owner: root
+    group: root
+    mode: "0440"
+    validate: "visudo -cf %s"
+  loop: "{{ sudoers_dropins }}"
+  notify: "Validate sudoers configuration"
+  when: sudoers_enabled | bool and sudoers_dropins | length > 0

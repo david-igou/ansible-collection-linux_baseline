@@ -1,0 +1,8 @@
+---
+# defaults file for david_igou.linux_baseline.firewalld
+firewalld_enabled: true
+firewalld_default_zone: "public"
+firewalld_zones: {}
+firewalld_services: []
+firewalld_masquerade: false
+firewalld_forward_ports: []
