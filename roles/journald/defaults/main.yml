@@ -1,0 +1,18 @@
+---
+# defaults file for david_igou.linux_baseline.journald
+journald_enabled: true
+journald_settings:
+  Storage: "persistent"
+  Compress: "yes"
+  Split: "auto"
+  MaxFileSec: "1day"
+  MaxRetentionSec: "1year"
+  ForwardToSyslog: "no"
+  SystemMaxUse: "256M"
+  SystemKeepFree: "1G"
+  RuntimeMaxUse: "64M"
+  RuntimeKeepFree: "512M"
+  RateLimitInterval: "30s"
+  RateLimitBurst: "10000"
+journald_config_path: "/etc/systemd/journald.conf"
+journald_backup: false

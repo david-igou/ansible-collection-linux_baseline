@@ -1,0 +1,9 @@
+---
+# defaults file for david_igou.linux_baseline.auto_updates
+auto_updates_enabled: true
+auto_updates_apply_when: "always"
+auto_updates_randomize_timer: true
+auto_updates_email_report: false
+auto_updates_email_to: ""
+auto_updates_download_updates: true
+auto_updates_upgrade_type: "security"

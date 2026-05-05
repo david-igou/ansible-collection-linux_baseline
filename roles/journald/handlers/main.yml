@@ -1,0 +1,8 @@
+---
+# handlers file for david_igou.linux_baseline.journald
+- name: Restart journald
+  ansible.builtin.service:
+    daemon_reload: true
+    name: systemd-journald
+    state: restarted
+  listen: "Restart journald"
