@@ -1,0 +1,78 @@
+---
+# tasks file for david_igou.linux_baseline.common
+
+- name: Set locale
+  ansible.builtin.command:
+    cmd: localectl set-locale LANG={{ common_locale }}
+  when: common_locale != ansible_facts.get("locale", "")
+  changed_when: false
+  notify: "restart services"
+
+- name: Set idle timeout (TMOUT)
+  ansible.builtin.lineinfile:
+    path: /etc/profile.d/tmout.sh
+    regexp: '^TMOUT='
+    line: "TMOUT={{ common_tmout }}"
+    owner: root
+    group: root
+    mode: "0644"
+    create: true
+  notify: "restart services"
+
+- name: Set umask
+  ansible.builtin.lineinfile:
+    path: /etc/profile.d/umask.sh
+    regexp: '^UMASK='
+    line: "UMASK={{ common_umask }}"
+    owner: root
+    group: root
+    create: true
+    mode: "0644"
+  notify: "restart services"
+
+- name: Disable core dumps
+  ansible.builtin.lineinfile:
+    path: /etc/systemd/coredump.conf
+    regexp: '^CoreDumpStorage='
+    line: "CoreDumpStorage=none"
+  when: not common_core_dump_enabled
+  notify: "restart services"
+
+- name: Configure PAM faillock (RHEL-family)
+  when: ansible_facts.get("os_family", "") == "RedHat"
+  block:
+    - name: Set PAM faillock deny threshold
+      ansible.builtin.lineinfile:
+        path: /etc/security/faillock.conf
+        regexp: '^deny ='
+        line: "deny = {{ common_pam_faillock_deny }}"
+      notify: "restart services"
+
+    - name: Set PAM faillock unlock time
+      ansible.builtin.lineinfile:
+        path: /etc/security/faillock.conf
+        regexp: '^unlock_time ='
+        line: "unlock_time = {{ common_pam_faillock_unlock_time }}"
+      notify: "restart services"
+
+- name: Install and configure auditd (RHEL-family)
+  when: common_auditd_enabled | bool
+  block:
+    - name: Install audit package
+      ansible.builtin.package:
+        name: "{{ 'audit' if ansible_facts.distribution in ['RedHat', 'CentOS'] else 'audit' }}"
+        state: present
+
+    - name: Configure auditd rules
+      ansible.builtin.lineinfile:
+        path: /etc/audit/rules.d/audit.rules
+        line: "-w /etc/passwd -p wa -k identity"
+        create: true
+        mode: "0640"
+      notify: "restart auditd"
+
+    - name: Enable and start auditd service
+      ansible.builtin.service:
+        name: auditd
+        enabled: true
+        state: started

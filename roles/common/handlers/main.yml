@@ -1,0 +1,15 @@
+---
+# handlers file for david_igou.linux_baseline.common
+- name: Restart services
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: restarted
+  listen: "restart services"
+  loop:
+    - auditd
+
+- name: Restart auditd
+  ansible.builtin.service:
+    name: auditd
+    state: restarted
+  listen: "restart auditd"
