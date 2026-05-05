@@ -1,0 +1,61 @@
+---
+# tasks file for david_igou.linux_baseline.firewalld
+
+- name: Install firewalld package
+  ansible.builtin.package:
+    name: firewalld
+    state: present
+
+- name: Set default zone
+  ansible.builtin.command:
+    cmd: firewall-cmd --set-default-zone={{ firewalld_default_zone }}
+  notify: "Reload firewalld"
+  changed_when: true
+  when: firewalld_enabled | bool
+
+- name: Configure firewall zones
+  ansible.builtin.command:
+    cmd: >
+      firewall-cmd --zone={{ item.key }}
+      {{ '--add-port=' + port if port else '' }}
+      {{ '--add-service=' + service if service else '' }}
+      {{ '--add-rich-rule=' + rule if rule else '' }}
+      --permanent
+  loop: "{{ firewalld_zones | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  notify: "Reload firewalld"
+  changed_when: true
+  when: firewalld_enabled | bool and firewalld_zones | length > 0
+
+- name: Configure firewall services
+  ansible.builtin.command:
+    cmd: "firewall-cmd --add-service={{ item }} --permanent"
+  loop: "{{ firewalld_services }}"
+  notify: "Reload firewalld"
+  changed_when: true
+  when: firewalld_enabled | bool and firewalld_services | length > 0
+
+- name: Configure masquerade
+  ansible.builtin.command:
+    cmd: "firewall-cmd --add-masquerade --permanent"
+  notify: "Reload firewalld"
+  changed_when: true
+  when: firewalld_enabled | bool and firewalld_masquerade | bool
+
+- name: Configure forward ports
+  ansible.builtin.command:
+    cmd: >
+      firewall-cmd --add-forward-port=port={{ item.port }}:proto={{ item.protocol }}:toport={{ item.to_port }}:toaddr={{ item.to_addr | default(omit) }}
+      --permanent
+  loop: "{{ firewalld_forward_ports }}"
+  notify: "Reload firewalld"
+  changed_when: true
+  when: firewalld_enabled | bool and firewalld_forward_ports | length > 0
+
+- name: Enable and start firewalld service
+  ansible.builtin.service:
+    name: firewalld
+    enabled: true
+    state: started
+  when: firewalld_enabled | bool

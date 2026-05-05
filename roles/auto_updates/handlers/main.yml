@@ -1,0 +1,7 @@
+---
+# handlers file for david_igou.linux_baseline.auto_updates
+- name: Restart dnf-automatic timer
+  ansible.builtin.service:
+    name: dnf-automatic.timer
+    state: restarted
+  listen: "restart dnf-automatic"

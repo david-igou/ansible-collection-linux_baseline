@@ -1,0 +1,7 @@
+---
+# handlers file for david_igou.linux_baseline.chrony
+- name: Restart chronyd
+  ansible.builtin.service:
+    name: chronyd
+    state: restarted
+  listen: "restart services"

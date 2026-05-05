@@ -1,0 +1,10 @@
+---
+# tasks file for david_igou.linux_baseline.journald
+
+- name: Apply journald configuration settings
+  david_igou.linux_baseline.journald_option:
+    settings: "{{ journald_settings }}"
+    path: "{{ journald_config_path }}"
+    backup: "{{ journald_backup }}"
+  notify: "restart journald"
+  when: journald_enabled | bool

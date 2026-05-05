@@ -1,0 +1,15 @@
+---
+# defaults file for david_igou.linux_baseline.chrony
+chrony_enabled: true
+chrony_pool_servers:
+  - "0.pool.ntp.org"
+  - "1.pool.ntp.org"
+  - "2.pool.ntp.org"
+  - "3.pool.ntp.org"
+chrony_drift_file: "/var/lib/chrony/drift"
+chrony_makestep: "1.0 3"
+chrony_leapsecmode: "software"
+chrony_log_interval: -1
+chrony_access_network: "10.0.0.0/8"
+chrony_access_mask: "/16"
+chrony_access_ro: true

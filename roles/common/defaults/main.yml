@@ -1,0 +1,9 @@
+---
+# defaults file for david_igou.linux_baseline.common
+common_locale: "en_US.UTF-8"
+common_tmout: 900
+common_umask: "0077"
+common_core_dump_enabled: false
+common_pam_faillock_deny: 5
+common_pam_faillock_unlock_time: 900
+common_auditd_enabled: true

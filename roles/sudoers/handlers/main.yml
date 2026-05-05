@@ -1,0 +1,7 @@
+---
+# handlers file for david_igou.linux_baseline.sudoers
+- name: Validate sudoers configuration
+  ansible.builtin.command:
+    cmd: visudo -cf /etc/sudoers
+  changed_when: false
+  listen: "Validate sudoers configuration"

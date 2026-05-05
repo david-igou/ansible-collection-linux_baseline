@@ -1,0 +1,21 @@
+---
+# defaults file for david_igou.linux_baseline.sshd
+sshd_enabled: true
+sshd_settings:
+  PermitRootLogin: "no"
+  PasswordAuthentication: "no"
+  PubkeyAuthentication: "yes"
+  ChallengeResponseAuthentication: "no"
+  UsePAM: "yes"
+  X11Forwarding: "no"
+  MaxAuthTries: 3
+  MaxSessions: 5
+  ClientAliveInterval: 300
+  ClientAliveCountMax: 2
+  LoginGraceTime: 60
+  PermitEmptyPasswords: "no"
+  AllowTcpForwarding: "no"
+  StrictModes: "yes"
+  IgnoreRhosts: "yes"
+sshd_config_path: "/etc/ssh/sshd_config"
+sshd_backup: false

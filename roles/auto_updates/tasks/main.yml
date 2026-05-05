@@ -1,0 +1,62 @@
+---
+# tasks file for david_igou.linux_baseline.auto_updates
+
+- name: Install dnf-automatic package
+  ansible.builtin.package:
+    name: dnf-automatic
+    state: present
+
+- name: Configure dnf-automatic settings
+  block:
+    - name: Set upgrade type
+      ansible.builtin.lineinfile:
+        path: /etc/dnf/automatic.conf
+        regexp: '^upgrade_type'
+        line: "upgrade_type = {{ auto_updates_upgrade_type }}"
+      notify: "restart dnf-automatic"
+
+    - name: Set download updates
+      ansible.builtin.lineinfile:
+        path: /etc/dnf/automatic.conf
+        regexp: '^download_updates'
+        line: "download_updates = {{ 'yes' if auto_updates_download_updates else 'no' }}"
+      notify: "restart dnf-automatic"
+
+    - name: Set apply when
+      ansible.builtin.lineinfile:
+        path: /etc/dnf/automatic.conf
+        regexp: '^apply_updates'
+        line: "apply_updates = {{ 'yes' if auto_updates_apply_when == 'always' else 'no' }}"
+      notify: "restart dnf-automatic"
+
+    - name: Configure email reporting (if enabled)
+      when: auto_updates_email_report | bool
+      block:
+        - name: Set email report to
+          ansible.builtin.lineinfile:
+            path: /etc/dnf/automatic.conf
+            regexp: '^email_to'
+            line: "email_to = {{ auto_updates_email_to }}"
+          notify: "restart dnf-automatic"
+
+        - name: Enable email report
+          ansible.builtin.lineinfile:
+            path: /etc/dnf/automatic.conf
+            regexp: '^email_report'
+            line: "email_report = yes"
+          notify: "restart dnf-automatic"
+
+    - name: Configure timer randomization (if enabled)
+      ansible.builtin.lineinfile:
+        path: /etc/dnf/automatic.conf
+        regexp: '^randomized_delay_sec'
+        line: "randomized_delay_sec = 3600"
+      notify: "restart dnf-automatic"
+      when: auto_updates_randomize_timer | bool
+
+- name: Enable and start dnf-automatic timer
+  ansible.builtin.service:
+    name: dnf-automatic.timer
+    enabled: true
+    state: started
+  when: auto_updates_enabled | bool
