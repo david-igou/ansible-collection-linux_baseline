@@ -1,0 +1,16 @@
+---
+- name: Converge — apply sudoers role
+  hosts: molecule
+  become: true
+  gather_facts: true
+  vars:
+    sudoers_enabled: true
+    sudoers_defaults:
+      timestamp_timeout: 5
+      passwd_tries: 3
+      logfile: "/var/log/sudo.log"
+    sudoers_dropins:
+      - name: "10-wheel-nopasswd"
+        content: "%wheel ALL=(ALL) NOPASSWD: ALL"
+  roles:
+    - role: david_igou.linux_baseline.sudoers

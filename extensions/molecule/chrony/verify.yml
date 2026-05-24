@@ -1,0 +1,69 @@
+---
+- name: Verify — chrony role effects
+  hosts: molecule
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Detect host capability
+      ansible.builtin.set_fact:
+        mp_has_systemd: "{{ ansible_service_mgr == 'systemd' }}"
+        mp_is_container: "{{ ansible_virtualization_type in ['docker', 'podman', 'container'] }}"
+
+    - name: Probe systemctl reachability
+      ansible.builtin.command: systemctl is-system-running
+      register: mp_systemctl_probe
+      failed_when: false
+      changed_when: false
+
+    - name: Refine — runtime systemd available
+      ansible.builtin.set_fact:
+        mp_systemd_runtime: >-
+          {{ mp_has_systemd and (mp_systemctl_probe.rc in [0, 1])
+             and ('offline' not in (mp_systemctl_probe.stdout | default(''))) }}
+
+    - name: Query rpm for chrony
+      ansible.builtin.command: rpm -q chrony
+      register: __chrony_pkg
+      changed_when: false
+
+    - name: Assert chrony package installed
+      ansible.builtin.assert:
+        that: __chrony_pkg.rc == 0
+        fail_msg: "chrony package not installed"
+
+    - name: Slurp chrony.conf
+      ansible.builtin.slurp:
+        src: "/etc/chrony.conf"
+      register: __chronycfg
+
+    - name: Assert chrony directives present
+      vars:
+        _c: "{{ __chronycfg.content | b64decode }}"
+      ansible.builtin.assert:
+        that:
+          - "'pool 0.pool.ntp.org iburst maxsources 4' in _c"
+          - "'driftfile /var/lib/chrony/drift' in _c"
+          - "'makestep 1.0 3' in _c"
+          - "'leapsecmode ignore' in _c"
+        fail_msg: "Expected chrony directives not found in /etc/chrony.conf"
+
+    - name: Gather service facts (gated)
+      ansible.builtin.service_facts:
+      when: mp_systemd_runtime
+
+    - name: Assert chronyd is enabled
+      ansible.builtin.assert:
+        that:
+          - "'chronyd.service' in ansible_facts.services"
+          - ansible_facts.services['chronyd.service'].status == 'enabled'
+        fail_msg: "chronyd.service not enabled"
+      when: mp_systemd_runtime
+
+    - name: Assert chronyd is running on non-container backends
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['chronyd.service'].state == 'running'
+        fail_msg: "chronyd.service not running on non-container backend"
+      when:
+        - mp_systemd_runtime
+        - not mp_is_container

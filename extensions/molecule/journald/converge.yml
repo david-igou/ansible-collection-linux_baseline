@@ -1,0 +1,14 @@
+---
+- name: Converge — apply journald role
+  hosts: molecule
+  become: true
+  gather_facts: true
+  vars:
+    journald_enabled: true
+    journald_settings:
+      Storage: "persistent"
+      Compress: "yes"
+      SystemMaxUse: "500M"
+      SystemKeepFree: "100M"
+  roles:
+    - role: david_igou.linux_baseline.journald

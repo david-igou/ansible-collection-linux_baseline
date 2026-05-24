@@ -1,0 +1,77 @@
+---
+- name: Verify — sudoers role effects
+  hosts: molecule
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Stat sudo binary
+      ansible.builtin.command: rpm -q sudo
+      register: __sudo_pkg
+      changed_when: false
+
+    - name: Assert sudo package installed
+      ansible.builtin.assert:
+        that: __sudo_pkg.rc == 0
+        fail_msg: "sudo package is not installed"
+
+    - name: Run visudo against /etc/sudoers
+      ansible.builtin.command: visudo -cf /etc/sudoers
+      register: __visudo_main
+      changed_when: false
+
+    - name: Assert /etc/sudoers passes visudo
+      ansible.builtin.assert:
+        that: __visudo_main.rc == 0
+        fail_msg: "visudo -cf /etc/sudoers failed: {{ __visudo_main.stderr }}"
+
+    - name: Slurp /etc/sudoers
+      ansible.builtin.slurp:
+        src: /etc/sudoers
+      register: __sudoers_main
+
+    - name: Assert sudoers_defaults written
+      vars:
+        _content: "{{ __sudoers_main.content | b64decode }}"
+      ansible.builtin.assert:
+        that:
+          - "'Defaults timestamp_timeout=5' in _content"
+          - "'Defaults passwd_tries=3' in _content"
+          - "'Defaults logfile=/var/log/sudo.log' in _content"
+        fail_msg: "Defaults lines not found as expected in /etc/sudoers"
+
+    - name: Stat dropin file
+      ansible.builtin.stat:
+        path: /etc/sudoers.d/10-wheel-nopasswd
+      register: __dropin_stat
+
+    - name: Assert dropin exists with 0440 root:root
+      ansible.builtin.assert:
+        that:
+          - __dropin_stat.stat.exists
+          - __dropin_stat.stat.mode == "0440"
+          - __dropin_stat.stat.pw_name == "root"
+          - __dropin_stat.stat.gr_name == "root"
+        fail_msg: "Dropin file missing or wrong perms: {{ __dropin_stat.stat }}"
+
+    - name: Slurp dropin file
+      ansible.builtin.slurp:
+        src: /etc/sudoers.d/10-wheel-nopasswd
+      register: __dropin_content
+
+    - name: Assert dropin content matches
+      vars:
+        _content: "{{ __dropin_content.content | b64decode }}"
+      ansible.builtin.assert:
+        that:
+          - "'%wheel ALL=(ALL) NOPASSWD: ALL' in _content"
+        fail_msg: "Dropin content does not contain expected wheel rule"
+
+    - name: Run visudo against dropin
+      ansible.builtin.command: visudo -cf /etc/sudoers.d/10-wheel-nopasswd
+      register: __visudo_dropin
+      changed_when: false
+
+    - name: Assert dropin passes visudo
+      ansible.builtin.assert:
+        that: __visudo_dropin.rc == 0
+        fail_msg: "visudo failed on dropin: {{ __visudo_dropin.stderr }}"
