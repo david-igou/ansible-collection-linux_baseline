@@ -13,3 +13,5 @@
     name: auditd
     state: restarted
   listen: "restart auditd"
+  failed_when: false
+  changed_when: false
