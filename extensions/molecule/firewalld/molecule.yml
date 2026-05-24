@@ -13,7 +13,7 @@ ansible:
     verify: verify.yml
 
 scenario:
-  name: default
+  name: firewalld
   test_sequence:
     - dependency
     - syntax

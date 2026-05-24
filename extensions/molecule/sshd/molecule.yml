@@ -13,7 +13,7 @@ ansible:
     verify: verify.yml
 
 scenario:
-  name: default
+  name: sshd
   test_sequence:
     - dependency
     - syntax
