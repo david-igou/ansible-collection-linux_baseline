@@ -47,22 +47,33 @@
     mode: "0644"
   notify: "Restart chronyd"
 
-- name: Configure chrony log interval
+- name: Configure chrony log categories
   ansible.builtin.lineinfile:
     path: "{{ chrony_config_path }}"
-    regexp: '^log'
-    line: "log {{ 'tracking' if chrony_log_interval == -1 else 'measurement direction transmiss onoffline' }}"
+    regexp: '^log '
+    line: "log {{ 'tracking' if chrony_log_interval == -1 else 'measurements statistics tracking' }}"
     create: true
     mode: "0644"
   notify: "Restart chronyd"
 
-- name: Configure chrony access network (read-only)
+- name: Configure chrony access network
   ansible.builtin.lineinfile:
     path: "{{ chrony_config_path }}"
-    regexp: '^restrict'
-    line: "restrict {{ chrony_access_network }}{{ chrony_access_mask }} {{ 'ro' if chrony_access_ro else 'ignore' }}"
+    regexp: '^allow '
+    line: "allow {{ chrony_access_network }}{{ chrony_access_mask }}"
     create: true
     mode: "0644"
+  notify: "Restart chronyd"
+  when:
+    - chrony_access_network is defined
+    - chrony_access_network | length > 0
+    - chrony_access_ro | bool
+
+- name: Remove stale 'restrict' lines (ntpd vocabulary; not valid in chrony.conf)
+  ansible.builtin.lineinfile:
+    path: "{{ chrony_config_path }}"
+    regexp: '^restrict '
+    state: absent
   notify: "Restart chronyd"
 
 - name: Enable chronyd service
