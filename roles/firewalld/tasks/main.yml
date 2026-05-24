@@ -18,6 +18,7 @@
     state: started
   register: _firewalld_service_start
   failed_when: false
+  changed_when: false
   when: firewalld_enabled | bool
 
 - name: Probe firewalld runtime reachability

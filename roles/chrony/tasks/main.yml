@@ -65,9 +65,16 @@
     mode: "0644"
   notify: "Restart chronyd"
 
-- name: Enable and start chronyd service
+- name: Enable chronyd service
   ansible.builtin.service:
     name: chronyd
     enabled: true
+  when: chrony_enabled | bool
+
+- name: Try to start chronyd service
+  ansible.builtin.service:
+    name: chronyd
     state: started
+  failed_when: false
+  changed_when: false
   when: chrony_enabled | bool

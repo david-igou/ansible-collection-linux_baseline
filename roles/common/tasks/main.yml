@@ -39,6 +39,7 @@
     owner: root
     group: root
     mode: "0644"
+    create: true
   when: not common_core_dump_enabled
 
 - name: Configure PAM faillock (RHEL-family)

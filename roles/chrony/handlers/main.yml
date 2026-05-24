@@ -4,4 +4,4 @@
   ansible.builtin.service:
     name: chronyd
     state: restarted
-  listen: "restart services"
+  listen: "Restart chronyd"

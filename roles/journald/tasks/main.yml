@@ -6,5 +6,5 @@
     settings: "{{ journald_settings }}"
     path: "{{ journald_config_path }}"
     backup: "{{ journald_backup }}"
-  notify: "restart journald"
+  notify: "Restart journald"
   when: journald_enabled | bool
