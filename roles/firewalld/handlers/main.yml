@@ -5,3 +5,5 @@
     name: firewalld
     state: reloaded
   listen: "Reload firewalld"
+  failed_when: false
+  changed_when: false
