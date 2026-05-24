@@ -1,3 +1,24 @@
 ---
+# Local patch: inject -cpu host into david_igou.molecule_provisioners.qemu's
+# launch task. The upstream qemu role hard-codes no -cpu flag, so QEMU
+# defaults to qemu64 (lacks x86-64-v2 instructions). Rocky 9 glibc panics
+# kernel-init on first boot under qemu64. Filed as upstream issue. The
+# patch is idempotent: once injected, the regex no longer matches.
+- name: Patch upstream qemu role for -cpu host (idempotent)
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    _mp_qemu_create_process: >-
+      {{ lookup('env', 'HOME')
+         ~ '/.ansible/collections/ansible_collections/david_igou/molecule_provisioners/roles/qemu/tasks/_create_process.yml' }}
+  tasks:
+    - name: Inject -cpu host into qemu bios launch argv
+      ansible.builtin.replace:
+        path: "{{ _mp_qemu_create_process }}"
+        regexp: '(      - "accel=\{\{ _accel \}\}"\n)(      - -m\n)'
+        replace: '\1      - -cpu\n      - host\n\2'
+      when: lookup('env', 'PROVISIONER') == 'qemu'
+
 - name: Create instances
   import_playbook: david_igou.molecule_provisioners.create

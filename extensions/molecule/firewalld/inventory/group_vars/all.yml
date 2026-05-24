@@ -27,3 +27,9 @@ mp_defaults:
     cpus: 2
     memory: 1024
     ssh_user: cloud-user
+
+# Cloud-init on Rocky 9 qcow2 can take >180s on first boot before sshd is
+# reachable with the injected key. Bump the provisioner role's wait so
+# prepare doesn't time out.
+mp_qemu_wait_timeout: 300
+mp_kubevirt_wait_timeout: 240
