@@ -5,3 +5,5 @@
     name: dnf-automatic.timer
     state: restarted
   listen: "restart dnf-automatic"
+  failed_when: false
+  changed_when: false

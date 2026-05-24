@@ -1,0 +1,31 @@
+---
+# mp_defaults is referenced as a bare variable inside each provisioner
+# role's spec_merge (e.g. roles/docker/tasks/_spec_merge.yml). The
+# dispatcher plays run on hosts: localhost, which isn't in the molecule
+# group, so group_vars/molecule.yml is not loaded for them. Putting the
+# backend defaults in group_vars/all.yml makes them visible to localhost.
+# See david-igou/ansible-collection-molecule_provisioners issue tracker
+# for the upstream bug.
+
+mp_defaults:
+  podman:
+    command: /sbin/init
+    privileged: true
+    systemd: always
+    cgroupns: host
+  docker:
+    command_handling: compatibility
+    command: /sbin/init
+    privileged: true
+    cgroupns_mode: host
+    tty: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+  kubevirt:
+    namespace: molecule
+    memory: 1Gi
+    ssh_user: cloud-user
+  qemu:
+    cpus: 2
+    memory: 1024
+    ssh_user: cloud-user
