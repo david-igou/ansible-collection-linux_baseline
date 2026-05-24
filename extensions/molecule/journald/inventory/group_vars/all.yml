@@ -10,9 +10,7 @@
 mp_defaults:
   podman:
     command: /sbin/init
-    privileged: true
     systemd: always
-    cgroupns: host
   docker:
     command_handling: compatibility
     command: /sbin/init
