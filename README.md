@@ -50,6 +50,53 @@ See
 [Ansible Using Collections](https://docs.ansible.com/ansible/latest/user_guide/collections_using.html)
 for more details.
 
+## Testing with Molecule
+
+Each role has a scenario under `extensions/molecule/<role>/` driven by
+`david_igou.molecule_provisioners`. Pick a backend with the `PROVISIONER`
+env var; the same scenarios run on all four:
+
+```bash
+MOLECULE_GLOB='extensions/molecule/*/molecule.yml' \
+PROVISIONER=podman molecule test --scenario-name sshd
+
+# Other backends:
+PROVISIONER=docker   molecule test --scenario-name sshd
+PROVISIONER=kubevirt molecule test --scenario-name sshd
+PROVISIONER=qemu     molecule test --scenario-name sshd
+```
+
+`MOLECULE_GLOB` tells molecule to discover scenarios under `extensions/`
+(collection layout). Scenarios: `auto_updates`, `chrony`, `common`,
+`firewalld`, `journald`, `sshd`, `sudoers`.
+
+The provisioner collection is installed by molecule's `dependency` step
+from each scenario's `collections.yml` — you don't need to add it to
+`requirements.yml` for downstream consumers of the roles.
+
+### Backend prerequisites
+
+| Backend  | Controller needs                                                                       |
+| -------- | -------------------------------------------------------------------------------------- |
+| podman   | `podman`                                                                               |
+| docker   | running docker daemon + `docker` python package                                        |
+| kubevirt | `kubectl`/`oc` + kubeconfig with `nodes [get,list]` cluster-scope and namespaced perms for VMs/Services |
+| qemu     | `qemu-system-x86_64`, `qemu-img`, `cloud-localds`                                      |
+
+### Backend caveats
+
+| Role         | container backends (podman/docker)             | VM backends (kubevirt/qemu) |
+| ------------ | ---------------------------------------------- | --------------------------- |
+| firewalld    | netfilter unavailable → daemon not started; verify checks XML on disk | full daemon running |
+| common (auditd) | CAP_AUDIT_CONTROL not granted → not started | full daemon running |
+| chrony       | CAP_SYS_TIME not granted → daemon flaps      | full daemon running |
+| auto_updates | dnf-automatic.timer enabled but not active   | timer enabled + scheduled   |
+| sshd, sudoers, journald | full verification | full verification |
+
+`verify.yml` gates runtime/daemon assertions on `mp_systemd_runtime` +
+`not mp_is_container`; file artifacts and idempotency are checked on
+every backend.
+
 ## Release notes
 
 See the
