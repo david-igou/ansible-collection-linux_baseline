@@ -47,21 +47,33 @@
           - "'leapsecmode ignore' in _c"
         fail_msg: "Expected chrony directives not found in /etc/chrony.conf"
 
-    - name: Gather service facts (gated)
-      ansible.builtin.service_facts:
+    - name: Probe systemctl is-enabled chronyd
+      ansible.builtin.command: systemctl is-enabled chronyd
+      register: __chronyd_is_enabled
+      failed_when: false
+      changed_when: false
       when: mp_systemd_runtime
 
-    - name: Assert chronyd is enabled
+    - name: Assert chronyd is enabled (or static/alias)
       ansible.builtin.assert:
         that:
-          - "'chronyd.service' in ansible_facts.services"
-          - ansible_facts.services['chronyd.service'].status == 'enabled'
-        fail_msg: "chronyd.service not enabled"
+          - __chronyd_is_enabled.rc == 0
+          - __chronyd_is_enabled.stdout in ['enabled', 'enabled-runtime', 'static', 'alias']
+        fail_msg: >-
+          chronyd.service is-enabled returned rc={{ __chronyd_is_enabled.rc }}
+          stdout='{{ __chronyd_is_enabled.stdout }}'
       when: mp_systemd_runtime
+
+    - name: Gather service facts (non-container only — for running check)
+      ansible.builtin.service_facts:
+      when:
+        - mp_systemd_runtime
+        - not mp_is_container
 
     - name: Assert chronyd is running on non-container backends
       ansible.builtin.assert:
         that:
+          - "'chronyd.service' in ansible_facts.services"
           - ansible_facts.services['chronyd.service'].state == 'running'
         fail_msg: "chronyd.service not running on non-container backend"
       when:

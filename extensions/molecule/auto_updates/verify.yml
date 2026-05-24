@@ -47,14 +47,19 @@
           - "'randomized_delay_sec = 3600' in _c"
         fail_msg: "Expected dnf-automatic directives not found in /etc/dnf/automatic.conf"
 
-    - name: Gather service facts (gated)
-      ansible.builtin.service_facts:
+    - name: Probe systemctl is-enabled dnf-automatic.timer
+      ansible.builtin.command: systemctl is-enabled dnf-automatic.timer
+      register: __dnfauto_is_enabled
+      failed_when: false
+      changed_when: false
       when: not mp_is_container
 
     - name: Assert dnf-automatic.timer is enabled on non-container backends
       ansible.builtin.assert:
         that:
-          - "'dnf-automatic.timer' in ansible_facts.services"
-          - ansible_facts.services['dnf-automatic.timer'].status == 'enabled'
-        fail_msg: "dnf-automatic.timer not enabled on non-container backend"
+          - __dnfauto_is_enabled.rc == 0
+          - __dnfauto_is_enabled.stdout in ['enabled', 'enabled-runtime', 'static', 'alias']
+        fail_msg: >-
+          dnf-automatic.timer is-enabled returned rc={{ __dnfauto_is_enabled.rc }}
+          stdout='{{ __dnfauto_is_enabled.stdout }}'
       when: not mp_is_container

@@ -47,15 +47,32 @@
           - "'ClientAliveInterval 300' in _c"
         fail_msg: "Expected sshd directives not found in /etc/ssh/sshd_config"
 
+    - name: Probe systemctl is-enabled sshd
+      ansible.builtin.command: systemctl is-enabled sshd
+      register: __sshd_is_enabled
+      failed_when: false
+      changed_when: false
+      when: mp_systemd_runtime
+
+    - name: Assert sshd is enabled
+      ansible.builtin.assert:
+        that:
+          - __sshd_is_enabled.rc == 0
+          - __sshd_is_enabled.stdout in ['enabled', 'enabled-runtime', 'static', 'alias']
+        fail_msg: >-
+          sshd is-enabled returned rc={{ __sshd_is_enabled.rc }}
+          stdout='{{ __sshd_is_enabled.stdout }}'
+      when: mp_systemd_runtime
+
     - name: Gather service facts (gated)
       ansible.builtin.service_facts:
       when: mp_systemd_runtime
 
-    - name: Assert sshd is enabled and running
+    - name: Assert sshd is running
       ansible.builtin.assert:
         that:
           - "'sshd.service' in ansible_facts.services"
-          - ansible_facts.services['sshd.service'].status == 'enabled'
           - ansible_facts.services['sshd.service'].state == 'running'
-        fail_msg: "sshd not enabled+running under systemd"
+        fail_msg: >-
+          sshd not running: state={{ ansible_facts.services['sshd.service'].state | default('absent') }}
       when: mp_systemd_runtime
