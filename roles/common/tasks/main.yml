@@ -73,8 +73,14 @@
         mode: "0640"
       notify: "restart auditd"
 
-    - name: Enable and start auditd service
+    - name: Enable auditd service
       ansible.builtin.service:
         name: auditd
         enabled: true
+
+    - name: Try to start auditd service
+      ansible.builtin.service:
+        name: auditd
         state: started
+      failed_when: false
+      changed_when: false

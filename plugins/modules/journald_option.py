@@ -231,12 +231,19 @@ def apply_settings(file_path, settings, state, backup, check_mode, diff_lines_be
                 line = build_ini_line(key, str(value))
                 pattern = r"^\s*" + re.escape(key) + r"\s*="
 
-                # Find existing line in new_lines within this section
+                # Find existing line in new_lines within this section.
+                # Scan past blank lines and comments; stop only at the next
+                # section header — comments inside the section are common
+                # in journald.conf, so breaking on '#' would miss settings
+                # that were appended later, causing duplicate inserts on
+                # subsequent runs.
                 found_idx = None
                 for i in range(section_start_idx + 1, len(new_lines)):
                     s = new_lines[i].strip()
-                    if not s or s.startswith("#") or re.match(r"^\[", s):
+                    if re.match(r"^\[", s):
                         break
+                    if not s or s.startswith("#"):
+                        continue
                     if re.match(pattern, s):
                         found_idx = i
                         break
