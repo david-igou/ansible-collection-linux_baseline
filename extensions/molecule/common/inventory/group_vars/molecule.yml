@@ -1,0 +1,20 @@
+---
+mp_backend: "{{ lookup('env', 'PROVISIONER') | default('podman', true) }}"
+
+mp_defaults:
+  podman:
+    command: /sbin/init
+    privileged: true
+    systemd: always
+    cgroupns: host
+  docker:
+    command_handling: compatibility
+    privileged: true
+  kubevirt:
+    namespace: molecule
+    memory: 1Gi
+    ssh_user: cloud-user
+  qemu:
+    cpus: 2
+    memory: 1024
+    ssh_user: cloud-user
