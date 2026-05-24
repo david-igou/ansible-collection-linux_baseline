@@ -11,7 +11,12 @@ mp_defaults:
     cgroupns: host
   docker:
     command_handling: compatibility
+    command: /sbin/init
     privileged: true
+    cgroupns_mode: host
+    tty: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
   kubevirt:
     namespace: molecule
     memory: 1Gi

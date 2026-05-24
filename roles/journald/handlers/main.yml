@@ -6,3 +6,5 @@
     name: systemd-journald
     state: restarted
   listen: "Restart journald"
+  failed_when: false
+  changed_when: false
