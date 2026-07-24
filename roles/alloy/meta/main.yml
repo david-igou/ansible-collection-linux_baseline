@@ -1,0 +1,25 @@
+---
+# meta file for david_igou.linux_baseline.alloy
+
+galaxy_info:
+  role_name: alloy
+  author: david_igou
+  description: Install Grafana Alloy and ship the systemd journal to a central Loki endpoint
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Fedora
+      versions:
+        - "41"
+    - name: EL
+      versions:
+        - "9"
+        - "10"
+    - name: Debian
+      versions:
+        - "bookworm"
+  galaxy_tags:
+    - system
+    - logging
+    - alloy
+    - loki
