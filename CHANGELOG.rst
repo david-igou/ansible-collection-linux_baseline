@@ -1,13 +1,6 @@
-====================================================
-David\_igou Linux\_baseline Collection Release Notes
-====================================================
+This should be updated by antsibull-changelog. Do not edit this manually!
 
-.. contents:: Topics
+See https://github.com/ansible-community/antsibull-changelog/blob/main/docs/changelogs.rst for
+information on how to use antsibull-changelog.
 
-v1.1.0
-======
-
-Minor Changes
--------------
-
-- alloy - new role installing Grafana Alloy and shipping the systemd journal to a central Loki push endpoint (https://github.com/igou-io/igou-openshift/issues/382).
+Check out ``changelogs/config.yaml`` for its configuration. You need to change at least the ``title`` field in there.
