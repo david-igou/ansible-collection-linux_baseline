@@ -1,0 +1,17 @@
+---
+- name: Converge — apply firewalld role
+  hosts: molecule
+  become: true
+  gather_facts: true
+  vars:
+    firewalld_enabled: true
+    firewalld_default_zone: "public"
+    firewalld_services:
+      - "ssh"
+    firewalld_zones:
+      internal:
+        service: "ssh"
+    firewalld_masquerade: false
+    firewalld_forward_ports: []
+  roles:
+    - role: david_igou.linux_baseline.firewalld

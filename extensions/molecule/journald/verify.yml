@@ -1,0 +1,67 @@
+---
+- name: Verify — journald role effects
+  hosts: molecule
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Detect host capability
+      ansible.builtin.set_fact:
+        mp_has_systemd: "{{ ansible_service_mgr == 'systemd' }}"
+        mp_is_container: "{{ ansible_virtualization_type in ['docker', 'podman', 'container'] }}"
+
+    - name: Probe systemctl reachability
+      ansible.builtin.command: systemctl is-system-running
+      register: mp_systemctl_probe
+      failed_when: false
+      changed_when: false
+
+    - name: Refine — runtime systemd available
+      ansible.builtin.set_fact:
+        mp_systemd_runtime: >-
+          {{ mp_has_systemd and (mp_systemctl_probe.rc in [0, 1])
+             and ('offline' not in (mp_systemctl_probe.stdout | default(''))) }}
+
+    - name: Slurp journald.conf
+      ansible.builtin.slurp:
+        src: /etc/systemd/journald.conf
+      register: __journaldcfg
+
+    - name: Assert journald directives present (INI format)
+      vars:
+        _c: "{{ __journaldcfg.content | b64decode }}"
+      ansible.builtin.assert:
+        that:
+          - "'Storage=persistent' in _c"
+          - "'Compress=yes' in _c"
+          - "'SystemMaxUse=500M' in _c"
+          - "'SystemKeepFree=100M' in _c"
+        fail_msg: "Expected journald directives not found in /etc/systemd/journald.conf"
+
+    - name: Re-run journald_option to assert idempotency at module level
+      david_igou.linux_baseline.journald_option:
+        settings:
+          Storage: "persistent"
+          Compress: "yes"
+          SystemMaxUse: "500M"
+          SystemKeepFree: "100M"
+      register: __journald_rerun
+      changed_when: false
+
+    - name: Assert module reports no change on re-apply
+      ansible.builtin.assert:
+        that:
+          - not __journald_rerun.changed
+          - (__journald_rerun.changed_keys | default([])) | length == 0
+        fail_msg: "journald_option not idempotent on re-apply: {{ __journald_rerun }}"
+
+    - name: Gather service facts (gated)
+      ansible.builtin.service_facts:
+      when: mp_systemd_runtime
+
+    - name: Assert systemd-journald is running
+      ansible.builtin.assert:
+        that:
+          - "'systemd-journald.service' in ansible_facts.services"
+          - ansible_facts.services['systemd-journald.service'].state == 'running'
+        fail_msg: "systemd-journald not running under systemd"
+      when: mp_systemd_runtime

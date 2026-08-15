@@ -1,0 +1,108 @@
+---
+- name: Verify — common role effects
+  hosts: molecule
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Detect host capability
+      ansible.builtin.set_fact:
+        mp_has_systemd: "{{ ansible_service_mgr == 'systemd' }}"
+        mp_is_container: "{{ ansible_virtualization_type in ['docker', 'podman', 'container'] }}"
+
+    - name: Probe systemctl reachability
+      ansible.builtin.command: systemctl is-system-running
+      register: mp_systemctl_probe
+      failed_when: false
+      changed_when: false
+
+    - name: Refine — runtime systemd available
+      ansible.builtin.set_fact:
+        mp_systemd_runtime: >-
+          {{ mp_has_systemd and (mp_systemctl_probe.rc in [0, 1])
+             and ('offline' not in (mp_systemctl_probe.stdout | default(''))) }}
+
+    - name: Slurp /etc/locale.conf
+      ansible.builtin.slurp:
+        src: /etc/locale.conf
+      register: __locale
+
+    - name: Assert locale set
+      ansible.builtin.assert:
+        that: "'LANG=C.UTF-8' in (__locale.content | b64decode)"
+        fail_msg: "locale not set to C.UTF-8"
+
+    - name: Slurp tmout.sh
+      ansible.builtin.slurp:
+        src: /etc/profile.d/tmout.sh
+      register: __tmout
+
+    - name: Assert TMOUT set
+      ansible.builtin.assert:
+        that: "'TMOUT=600' in (__tmout.content | b64decode)"
+        fail_msg: "TMOUT not 600"
+
+    - name: Slurp umask.sh
+      ansible.builtin.slurp:
+        src: /etc/profile.d/umask.sh
+      register: __umask
+
+    - name: Assert UMASK set
+      ansible.builtin.assert:
+        that: "'UMASK=0027' in (__umask.content | b64decode)"
+        fail_msg: "UMASK not 0027"
+
+    - name: Slurp coredump.conf
+      ansible.builtin.slurp:
+        src: /etc/systemd/coredump.conf
+      register: __coredump
+
+    - name: Assert core dumps disabled
+      ansible.builtin.assert:
+        that: "'CoreDumpStorage=none' in (__coredump.content | b64decode)"
+        fail_msg: "CoreDumpStorage not set to none"
+
+    - name: Slurp faillock.conf
+      ansible.builtin.slurp:
+        src: /etc/security/faillock.conf
+      register: __faillock
+
+    - name: Assert PAM faillock configured
+      vars:
+        _c: "{{ __faillock.content | b64decode }}"
+      ansible.builtin.assert:
+        that:
+          - "'deny = 4' in _c"
+          - "'unlock_time = 600' in _c"
+        fail_msg: "PAM faillock deny/unlock_time not configured"
+
+    - name: Query rpm for audit package
+      ansible.builtin.command: rpm -q audit
+      register: __audit_pkg
+      changed_when: false
+
+    - name: Assert audit package installed
+      ansible.builtin.assert:
+        that: __audit_pkg.rc == 0
+        fail_msg: "audit package not installed"
+
+    - name: Slurp audit rules
+      ansible.builtin.slurp:
+        src: /etc/audit/rules.d/audit.rules
+      register: __audit_rules
+
+    - name: Assert identity watch rule present
+      ansible.builtin.assert:
+        that: "'-w /etc/passwd -p wa -k identity' in (__audit_rules.content | b64decode)"
+        fail_msg: "identity audit rule not present"
+
+    - name: Gather service facts (gated)
+      ansible.builtin.service_facts:
+      when: not mp_is_container
+
+    - name: Assert auditd is running (only on non-container backends)
+      ansible.builtin.assert:
+        that:
+          - "'auditd.service' in ansible_facts.services"
+          - ansible_facts.services['auditd.service'].state == 'running'
+        fail_msg: "auditd not running on non-container backend"
+      when: not mp_is_container

@@ -1,0 +1,78 @@
+---
+- name: Verify — sshd role effects
+  hosts: molecule
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Detect host capability
+      ansible.builtin.set_fact:
+        mp_has_systemd: "{{ ansible_service_mgr == 'systemd' }}"
+        mp_is_container: "{{ ansible_virtualization_type in ['docker', 'podman', 'container'] }}"
+
+    - name: Probe systemctl reachability
+      ansible.builtin.command: systemctl is-system-running
+      register: mp_systemctl_probe
+      failed_when: false
+      changed_when: false
+
+    - name: Refine — runtime systemd available
+      ansible.builtin.set_fact:
+        mp_systemd_runtime: >-
+          {{ mp_has_systemd and (mp_systemctl_probe.rc in [0, 1])
+             and ('offline' not in (mp_systemctl_probe.stdout | default(''))) }}
+
+    - name: Validate sshd_config syntax
+      ansible.builtin.command: sshd -t -f /etc/ssh/sshd_config
+      register: __sshd_t
+      changed_when: false
+
+    - name: Assert sshd -t passes
+      ansible.builtin.assert:
+        that: __sshd_t.rc == 0
+        fail_msg: "sshd -t failed: {{ __sshd_t.stderr }}"
+
+    - name: Slurp sshd_config
+      ansible.builtin.slurp:
+        src: /etc/ssh/sshd_config
+      register: __sshdcfg
+
+    - name: Assert all configured directives present
+      vars:
+        _c: "{{ __sshdcfg.content | b64decode }}"
+      ansible.builtin.assert:
+        that:
+          - "'PermitRootLogin no' in _c"
+          - "'PasswordAuthentication no' in _c"
+          - "'X11Forwarding no' in _c"
+          - "'ClientAliveInterval 300' in _c"
+        fail_msg: "Expected sshd directives not found in /etc/ssh/sshd_config"
+
+    - name: Probe systemctl is-enabled sshd
+      ansible.builtin.command: systemctl is-enabled sshd
+      register: __sshd_is_enabled
+      failed_when: false
+      changed_when: false
+      when: mp_systemd_runtime
+
+    - name: Assert sshd is enabled
+      ansible.builtin.assert:
+        that:
+          - __sshd_is_enabled.rc == 0
+          - __sshd_is_enabled.stdout in ['enabled', 'enabled-runtime', 'static', 'alias']
+        fail_msg: >-
+          sshd is-enabled returned rc={{ __sshd_is_enabled.rc }}
+          stdout='{{ __sshd_is_enabled.stdout }}'
+      when: mp_systemd_runtime
+
+    - name: Gather service facts (gated)
+      ansible.builtin.service_facts:
+      when: mp_systemd_runtime
+
+    - name: Assert sshd is running
+      ansible.builtin.assert:
+        that:
+          - "'sshd.service' in ansible_facts.services"
+          - ansible_facts.services['sshd.service'].state == 'running'
+        fail_msg: >-
+          sshd not running: state={{ ansible_facts.services['sshd.service'].state | default('absent') }}
+      when: mp_systemd_runtime

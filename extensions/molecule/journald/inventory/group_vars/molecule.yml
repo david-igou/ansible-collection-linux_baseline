@@ -1,0 +1,4 @@
+---
+mp_backend: "{{ lookup('env', 'PROVISIONER') | default('podman', true) }}"
+
+ansible_user: "{{ 'root' if mp_backend in ['podman', 'docker'] else 'cloud-user' }}"

@@ -1,0 +1,15 @@
+---
+- name: Converge — apply common role
+  hosts: molecule
+  become: true
+  gather_facts: true
+  vars:
+    common_locale: "C.UTF-8"
+    common_tmout: 600
+    common_umask: "0027"
+    common_core_dump_enabled: false
+    common_pam_faillock_deny: 4
+    common_pam_faillock_unlock_time: 600
+    common_auditd_enabled: true
+  roles:
+    - role: david_igou.linux_baseline.common

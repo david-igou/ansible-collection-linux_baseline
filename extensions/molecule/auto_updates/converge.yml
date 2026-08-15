@@ -1,0 +1,14 @@
+---
+- name: Converge — apply auto_updates role
+  hosts: molecule
+  become: true
+  gather_facts: true
+  vars:
+    auto_updates_enabled: true
+    auto_updates_upgrade_type: "security"
+    auto_updates_download_updates: true
+    auto_updates_apply_when: "always"
+    auto_updates_randomize_timer: true
+    auto_updates_email_report: false
+  roles:
+    - role: david_igou.linux_baseline.auto_updates

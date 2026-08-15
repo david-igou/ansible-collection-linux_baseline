@@ -1,0 +1,19 @@
+---
+- name: Converge — apply sshd role
+  hosts: molecule
+  become: true
+  gather_facts: true
+  vars:
+    sshd_enabled: true
+    sshd_settings:
+      PermitRootLogin: "no"
+      PasswordAuthentication: "no"
+      X11Forwarding: "no"
+      ClientAliveInterval: "300"
+  pre_tasks:
+    - name: Ensure openssh-server is installed
+      ansible.builtin.package:
+        name: openssh-server
+        state: present
+  roles:
+    - role: david_igou.linux_baseline.sshd

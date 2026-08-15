@@ -47,27 +47,45 @@
     mode: "0644"
   notify: "Restart chronyd"
 
-- name: Configure chrony log interval
+- name: Configure chrony log categories
   ansible.builtin.lineinfile:
     path: "{{ chrony_config_path }}"
-    regexp: '^log'
-    line: "log {{ 'tracking' if chrony_log_interval == -1 else 'measurement direction transmiss onoffline' }}"
+    regexp: '^log '
+    line: "log {{ 'tracking' if chrony_log_interval == -1 else 'measurements statistics tracking' }}"
     create: true
     mode: "0644"
   notify: "Restart chronyd"
 
-- name: Configure chrony access network (read-only)
+- name: Configure chrony access network
   ansible.builtin.lineinfile:
     path: "{{ chrony_config_path }}"
-    regexp: '^restrict'
-    line: "restrict {{ chrony_access_network }}{{ chrony_access_mask }} {{ 'ro' if chrony_access_ro else 'ignore' }}"
+    regexp: '^allow '
+    line: "allow {{ chrony_access_network }}{{ chrony_access_mask }}"
     create: true
     mode: "0644"
   notify: "Restart chronyd"
+  when:
+    - chrony_access_network is defined
+    - chrony_access_network | length > 0
+    - chrony_access_ro | bool
 
-- name: Enable and start chronyd service
+- name: Remove stale 'restrict' lines (ntpd vocabulary; not valid in chrony.conf)
+  ansible.builtin.lineinfile:
+    path: "{{ chrony_config_path }}"
+    regexp: '^restrict '
+    state: absent
+  notify: "Restart chronyd"
+
+- name: Enable chronyd service
   ansible.builtin.service:
     name: chronyd
     enabled: true
+  when: chrony_enabled | bool
+
+- name: Try to start chronyd service
+  ansible.builtin.service:
+    name: chronyd
     state: started
+  failed_when: false
+  changed_when: false
   when: chrony_enabled | bool

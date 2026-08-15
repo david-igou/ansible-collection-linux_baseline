@@ -1,0 +1,94 @@
+---
+- name: Verify — firewalld role effects
+  hosts: molecule
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Detect host capability
+      ansible.builtin.set_fact:
+        mp_has_systemd: "{{ ansible_service_mgr == 'systemd' }}"
+        mp_is_container: "{{ ansible_virtualization_type in ['docker', 'podman', 'container'] }}"
+
+    - name: Probe systemctl reachability
+      ansible.builtin.command: systemctl is-system-running
+      register: mp_systemctl_probe
+      failed_when: false
+      changed_when: false
+
+    - name: Refine — runtime systemd available
+      ansible.builtin.set_fact:
+        mp_systemd_runtime: >-
+          {{ mp_has_systemd and (mp_systemctl_probe.rc in [0, 1])
+             and ('offline' not in (mp_systemctl_probe.stdout | default(''))) }}
+
+    - name: Query rpm for firewalld
+      ansible.builtin.command: rpm -q firewalld
+      register: __fw_pkg
+      changed_when: false
+
+    - name: Assert firewalld package installed
+      ansible.builtin.assert:
+        that: __fw_pkg.rc == 0
+        fail_msg: "firewalld package not installed"
+
+    - name: Read default zone via firewall-offline-cmd (works without daemon)
+      ansible.builtin.command: firewall-offline-cmd --get-default-zone
+      register: __fw_offline_zone
+      changed_when: false
+
+    - name: Assert default zone is public
+      ansible.builtin.assert:
+        that: __fw_offline_zone.stdout == "public"
+        fail_msg: "Default zone not public, got: {{ __fw_offline_zone.stdout }}"
+
+    - name: Read public zone services via firewall-offline-cmd
+      ansible.builtin.command: firewall-offline-cmd --zone=public --list-services
+      register: __fw_offline_public
+      changed_when: false
+
+    - name: Assert ssh in public zone
+      ansible.builtin.assert:
+        that: "'ssh' in __fw_offline_public.stdout.split()"
+        fail_msg: "ssh service not enabled in public zone, got: {{ __fw_offline_public.stdout }}"
+
+    - name: Read internal zone services via firewall-offline-cmd
+      ansible.builtin.command: firewall-offline-cmd --zone=internal --list-services
+      register: __fw_offline_internal
+      changed_when: false
+
+    - name: Assert ssh in internal zone
+      ansible.builtin.assert:
+        that: "'ssh' in __fw_offline_internal.stdout.split()"
+        fail_msg: "ssh service not enabled in internal zone, got: {{ __fw_offline_internal.stdout }}"
+
+    - name: Gather service facts (gated)
+      ansible.builtin.service_facts:
+      when:
+        - mp_systemd_runtime
+        - not mp_is_container
+
+    - name: Assert firewalld is running on non-container backends
+      ansible.builtin.assert:
+        that:
+          - "'firewalld.service' in ansible_facts.services"
+          - ansible_facts.services['firewalld.service'].state == 'running'
+        fail_msg: "firewalld not running on non-container backend"
+      when:
+        - mp_systemd_runtime
+        - not mp_is_container
+
+    - name: Cross-check via firewall-cmd on non-container backends
+      ansible.builtin.command: firewall-cmd --get-default-zone
+      register: __fw_runtime_zone
+      changed_when: false
+      when:
+        - mp_systemd_runtime
+        - not mp_is_container
+
+    - name: Assert runtime default zone matches
+      ansible.builtin.assert:
+        that: __fw_runtime_zone.stdout == "public"
+        fail_msg: "Runtime default zone mismatch: {{ __fw_runtime_zone.stdout | default('n/a') }}"
+      when:
+        - mp_systemd_runtime
+        - not mp_is_container

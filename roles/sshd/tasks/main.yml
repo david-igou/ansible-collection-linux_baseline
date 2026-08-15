@@ -9,9 +9,16 @@
   notify: "Reload sshd"
   when: sshd_enabled | bool
 
-- name: Enable and start sshd service
+- name: Enable sshd service
   ansible.builtin.service:
     name: sshd
     enabled: true
+  when: sshd_enabled | bool
+
+- name: Try to start sshd service
+  ansible.builtin.service:
+    name: sshd
     state: started
+  failed_when: false
+  changed_when: false
   when: sshd_enabled | bool

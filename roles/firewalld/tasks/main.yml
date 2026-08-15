@@ -6,56 +6,133 @@
     name: firewalld
     state: present
 
-- name: Set default zone
-  ansible.builtin.command:
-    cmd: firewall-cmd --set-default-zone={{ firewalld_default_zone }}
-  notify: "Reload firewalld"
-  changed_when: true
-  when: firewalld_enabled | bool
-
-- name: Configure firewall zones
-  ansible.builtin.command:
-    cmd: >
-      firewall-cmd --zone={{ item.key }}
-      {{ '--add-port=' + port if port else '' }}
-      {{ '--add-service=' + service if service else '' }}
-      {{ '--add-rich-rule=' + rule if rule else '' }}
-      --permanent
-  loop: "{{ firewalld_zones | dict2items }}"
-  loop_control:
-    label: "{{ item.key }}"
-  notify: "Reload firewalld"
-  changed_when: true
-  when: firewalld_enabled | bool and firewalld_zones | length > 0
-
-- name: Configure firewall services
-  ansible.builtin.command:
-    cmd: "firewall-cmd --add-service={{ item }} --permanent"
-  loop: "{{ firewalld_services }}"
-  notify: "Reload firewalld"
-  changed_when: true
-  when: firewalld_enabled | bool and firewalld_services | length > 0
-
-- name: Configure masquerade
-  ansible.builtin.command:
-    cmd: "firewall-cmd --add-masquerade --permanent"
-  notify: "Reload firewalld"
-  changed_when: true
-  when: firewalld_enabled | bool and firewalld_masquerade | bool
-
-- name: Configure forward ports
-  ansible.builtin.command:
-    cmd: >
-      firewall-cmd --add-forward-port=port={{ item.port }}:proto={{ item.protocol }}:toport={{ item.to_port }}:toaddr={{ item.to_addr | default(omit) }}
-      --permanent
-  loop: "{{ firewalld_forward_ports }}"
-  notify: "Reload firewalld"
-  changed_when: true
-  when: firewalld_enabled | bool and firewalld_forward_ports | length > 0
-
-- name: Enable and start firewalld service
+- name: Enable firewalld service
   ansible.builtin.service:
     name: firewalld
     enabled: true
-    state: started
   when: firewalld_enabled | bool
+
+- name: Try to start firewalld service
+  ansible.builtin.service:
+    name: firewalld
+    state: started
+  register: _firewalld_service_start
+  failed_when: false
+  changed_when: false
+  when: firewalld_enabled | bool
+
+- name: Probe firewalld runtime reachability
+  ansible.builtin.command: firewall-cmd --state
+  register: _firewalld_runtime
+  failed_when: false
+  changed_when: false
+
+- name: Decide whether to drive firewalld in offline mode
+  ansible.builtin.set_fact:
+    _firewalld_offline: "{{ _firewalld_runtime.rc != 0 }}"
+
+- name: Get current default zone
+  ansible.builtin.command: >-
+    {{ 'firewall-offline-cmd' if _firewalld_offline else 'firewall-cmd' }}
+    --get-default-zone
+  register: _firewalld_current_zone
+  changed_when: false
+  when: firewalld_enabled | bool
+
+- name: Set default zone
+  ansible.builtin.command: >-
+    {{ 'firewall-offline-cmd' if _firewalld_offline else 'firewall-cmd' }}
+    --set-default-zone={{ firewalld_default_zone }}
+  when:
+    - firewalld_enabled | bool
+    - _firewalld_current_zone.stdout != firewalld_default_zone
+  notify: "Reload firewalld"
+
+- name: Enable services in the default zone
+  ansible.posix.firewalld:
+    service: "{{ item }}"
+    state: enabled
+    permanent: true
+    immediate: "{{ not _firewalld_offline }}"
+    offline: "{{ _firewalld_offline }}"
+  loop: "{{ firewalld_services }}"
+  when:
+    - firewalld_enabled | bool
+    - firewalld_services | length > 0
+
+- name: Enable per-zone services
+  ansible.posix.firewalld:
+    zone: "{{ item.key }}"
+    service: "{{ item.value.service }}"
+    state: enabled
+    permanent: true
+    immediate: "{{ not _firewalld_offline }}"
+    offline: "{{ _firewalld_offline }}"
+  loop: "{{ firewalld_zones | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when:
+    - firewalld_enabled | bool
+    - firewalld_zones | length > 0
+    - item.value.service is defined
+
+- name: Enable per-zone ports
+  ansible.posix.firewalld:
+    zone: "{{ item.key }}"
+    port: "{{ item.value.port }}"
+    state: enabled
+    permanent: true
+    immediate: "{{ not _firewalld_offline }}"
+    offline: "{{ _firewalld_offline }}"
+  loop: "{{ firewalld_zones | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when:
+    - firewalld_enabled | bool
+    - firewalld_zones | length > 0
+    - item.value.port is defined
+
+- name: Enable per-zone rich rules
+  ansible.posix.firewalld:
+    zone: "{{ item.key }}"
+    rich_rule: "{{ item.value.rule }}"
+    state: enabled
+    permanent: true
+    immediate: "{{ not _firewalld_offline }}"
+    offline: "{{ _firewalld_offline }}"
+  loop: "{{ firewalld_zones | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when:
+    - firewalld_enabled | bool
+    - firewalld_zones | length > 0
+    - item.value.rule is defined
+
+- name: Enable masquerade in the default zone
+  ansible.posix.firewalld:
+    masquerade: true
+    state: enabled
+    permanent: true
+    immediate: "{{ not _firewalld_offline }}"
+    offline: "{{ _firewalld_offline }}"
+  when:
+    - firewalld_enabled | bool
+    - firewalld_masquerade | bool
+
+- name: Configure forward ports
+  ansible.posix.firewalld:
+    port_forward:
+      - port: "{{ item.port }}"
+        proto: "{{ item.protocol }}"
+        toport: "{{ item.to_port }}"
+        toaddr: "{{ item.to_addr | default(omit) }}"
+    state: enabled
+    permanent: true
+    immediate: "{{ not _firewalld_offline }}"
+    offline: "{{ _firewalld_offline }}"
+  loop: "{{ firewalld_forward_ports }}"
+  loop_control:
+    label: "{{ item.port }}->{{ item.to_port }}"
+  when:
+    - firewalld_enabled | bool
+    - firewalld_forward_ports | length > 0

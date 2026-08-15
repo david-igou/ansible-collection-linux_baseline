@@ -54,9 +54,16 @@
       notify: "restart dnf-automatic"
       when: auto_updates_randomize_timer | bool
 
-- name: Enable and start dnf-automatic timer
+- name: Enable dnf-automatic timer
   ansible.builtin.service:
     name: dnf-automatic.timer
     enabled: true
+  when: auto_updates_enabled | bool
+
+- name: Try to start dnf-automatic timer
+  ansible.builtin.service:
+    name: dnf-automatic.timer
     state: started
+  failed_when: false
+  changed_when: false
   when: auto_updates_enabled | bool
