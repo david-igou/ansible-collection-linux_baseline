@@ -1,0 +1,3 @@
+---
+trivial:
+  - Consolidated collection design history in igou-docs and removed the obsolete agent execution plan; public role and module documentation remains in the collection.
